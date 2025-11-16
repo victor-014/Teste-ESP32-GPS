@@ -21,7 +21,7 @@ unsigned long lastStatusMs = 0;
 void tryAutoDetectBaud() {
   Serial.println("Auto-detectando baud do GPS...");
   // Buffer temporário para coleta de bytes durante teste
-  const int READ_WINDOW_MS = 5000; // tempo para cada baud
+  const int READ_WINDOW_MS = 500; // tempo para cada baud
   for (size_t i = 0; i < nBauds; ++i) {
     uint32_t b = candidateBauds[i];
     Serial.print("Testando baud ");
