@@ -14,9 +14,6 @@
 const char* apSsid = "GPS_AP";
 const char* apPass = "gps12345"; // mínimo 8 chars
 
-String logBuffer;
-const size_t LOG_MAX_SIZE = 200000; // 200 KB
-
 // intervalo de envio de status (ms)
 const unsigned long STATUS_INTERVAL_MS = 500; // ajuste conforme necessidade
 // se quiser enviar NMEA cru também, true
@@ -134,17 +131,6 @@ const char index_html[] PROGMEM = R"rawliteral(
       header h3 { font-size: 1rem; }
       #log { font-size: 0.9rem; }
     }
-    #downloadBtn {
-      background: #28a745;
-      color: #fff;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    #downloadBtn:hover {
-      background: #218838;
-    }
   </style>
 </head>
 <body>
@@ -152,7 +138,6 @@ const char index_html[] PROGMEM = R"rawliteral(
     <header>
       <h3>GPS Monitor</h3>
       <div id="statusSmall" aria-hidden="true" style="font-size:0.9rem; color:#555;">—</div>
-      <button id="downloadBtn">Baixar log</button>
     </header>
 
     <main>
@@ -262,10 +247,6 @@ const char index_html[] PROGMEM = R"rawliteral(
     document.addEventListener('DOMContentLoaded', () => {
       scrollToBottom();
     });
-
-    document.getElementById("downloadBtn").onclick = () => {
-      window.location.href = "/download";
-    };
   </script>
 </body>
 </html>
@@ -279,26 +260,11 @@ void notifyAllClients(const char* data, size_t len) {
   s.reserve(len + 1);
   s.concat(data, len);
   ws.textAll(s);
-
-  logBuffer += String(data).substring(0, len);
-  logBuffer += "\n";
-
-  if (logBuffer.length() > LOG_MAX_SIZE) {
-    logBuffer = logBuffer.substring(logBuffer.length() - LOG_MAX_SIZE);
-  }
 }
 
 void notifyAllClients(const char* cstr) {
+  // assume cstr terminado em '\0'
   ws.textAll(cstr);
-
-  // salva no buffer
-  logBuffer += cstr;
-  logBuffer += "\n";
-
-  // evita crescer demais
-  if (logBuffer.length() > LOG_MAX_SIZE) {
-    logBuffer = logBuffer.substring(logBuffer.length() - LOG_MAX_SIZE);
-  }
 }
 
 // ---------- Eventos WebSocket ----------
@@ -399,16 +365,6 @@ void setup() {
   // Servidor e WS
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", index_html);
-  });
-
-  server.on("/download", HTTP_GET, [](AsyncWebServerRequest *request){
-    AsyncWebServerResponse *response = request->beginResponse(
-      200,
-      "text/plain",
-      logBuffer
-    );
-    response->addHeader("Content-Disposition", "attachment; filename=\"gps_log.txt\"");
-    request->send(response);
   });
 
   ws.onEvent(onWsEvent);
